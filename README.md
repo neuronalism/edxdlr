@@ -1,4 +1,4 @@
-# edX Mini Downloader
+# edX Courseware Downloader
 
 一个 edX 课程下载器，改自 edx-dl 项目 (https://github.com/coursera-dl/edx-dl)。
 
@@ -21,7 +21,9 @@
 
 ### 使用限制
 
-**目前只支持新链接格式，即 learning.edx.org 开头的课程。老课程链接，即链接以 courses.edx.org 开头，暂时不支持下载。**
+- **目前只支持新链接格式，即 learning.edx.org 开头的课程。老课程链接，即链接以 courses.edx.org 开头，暂时不支持下载。**
+- 目前能下载的包括网页和视频，网页内图片和视频字幕暂时还下不了。
+- 课程内其它资源，比如 PDF、PPT 等，目前不支持下载（我参与的课程里没有这类资源，如果你参与的课程里有这类文件，欢迎给我个链接我看看）
 
 ### 安装要求
 
