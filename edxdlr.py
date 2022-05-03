@@ -37,6 +37,7 @@ from common import (
     Block,
     WebPage,
     Video,
+    Material, 
     ExitCode,
     DEFAULT_FILE_FORMATS,
 )
@@ -596,6 +597,11 @@ def download_page(webpage, args, target_dir, filename_prefix, headers):
     pagedownload = {webpage.url: os.path.join(target_dir, filename_prefix + '.html')}
     skip_or_save(pagedownload, webpage.content, headers, args)
 
+def download_material(material_unit, args, target_dir, filename_prefix, headers):
+    file_type = material_unit.url.rsplit('.',1)[1]
+    file_downloads = {BASE_URL + material_unit.url: os.path.join(target_dir, filename_prefix + '.' + file_type)}
+    skip_or_download(file_downloads, headers, args)
+
 def download_unit(unit, args, target_dir, filename_prefix, headers):
     """
     Downloads the urls in unit based on args in the given target_dir
@@ -606,7 +612,7 @@ def download_unit(unit, args, target_dir, filename_prefix, headers):
     elif unit.type == 'html':
         download_page(unit, args, target_dir, filename_prefix, headers)
     elif unit.type == 'file':
-        skip_or_download(unit.url, headers, args)
+        download_material(unit, args, target_dir, filename_prefix, headers)
 
 def download_course(args, course_block, headers, file_formats):
     """
@@ -645,7 +651,7 @@ def main():
     Main program function
     """
     args = parse_args()
-    logging.info('edx_dl version %s', __version__)
+    logging.info('edxls_dl version %s', __version__)
     file_formats = parse_file_formats(args)
 
     # Query password, if not alredy passed by command line.

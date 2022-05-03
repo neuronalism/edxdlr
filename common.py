@@ -165,6 +165,15 @@ class WebPage(object):
         self.type = 'html'
         self.content = content
 
+class Material(object):
+    """
+    Representation of a file, data of Unit
+    """
+    def __init__(self, url):
+        self.url = url
+        self.type = 'file'
+        self.content = None
+        
 class Video(object):
     """
     Representation of a single video. data of Unit
@@ -176,4 +185,3 @@ class Video(object):
         self.video_mp4_urls = [url for url in jsontext['sources'] if url.endswith('.mp4')]
         self.subs_available_url = jsontext['transcriptAvailableTranslationsUrl']
         self.subs_template_url = jsontext['transcriptTranslationUrl']
-

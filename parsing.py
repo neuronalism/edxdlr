@@ -12,7 +12,7 @@ from datetime import timedelta, datetime
 from six.moves import html_parser
 from bs4 import BeautifulSoup as BeautifulSoup_
 
-from common import Course, Block, Video, WebPage
+from common import Course, Block, Video, WebPage, Material
 
 
 # Force use of bs4 with html.parser
@@ -127,6 +127,15 @@ class EdxExtractor(object):
                 metadata = json.loads(html_parser.HTMLParser().unescape(metadata))
                 units.append(Video(metadata))
 
+        file_units = re.compile('(<a href=\"\/assets.*?\" target=\"\[object Object\]\">.*?<\/a>)',re.DOTALL)
+        for file_html in file_units.findall(page):
+        
+            re_link = re.compile(r"href=\"(.*?)\"")
+            match_links = re_link.findall(file_html)
+            
+            for material_link in match_links:
+                units.append(Material(material_link))
+                
         return units
 
     def extract_subtitle_urls(self, text, BASE_URL):
