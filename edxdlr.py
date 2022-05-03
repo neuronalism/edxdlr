@@ -119,8 +119,8 @@ def parse_args():
     Parse the arguments/options passed to the program on the command line.
     CHANGES: removed -x support; works only for edx.org now
     """
-    parser = argparse.ArgumentParser(prog='edx-dl',
-                                     description='Get videos from edx.org',
+    parser = argparse.ArgumentParser(prog='edxdlr',
+                                     description='Get materials from edx.org',
                                      epilog='For further use information,'
                                      'see the file README.md',)
     # positional
