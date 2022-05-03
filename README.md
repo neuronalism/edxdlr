@@ -1,6 +1,6 @@
 # edX Courseware Downloader
 
-一个 edX 课程下载器，改自 edx-dl 项目 (https://github.com/coursera-dl/edx-dl)。
+一个 edX 课程下载器，改自 edx-dl 项目 ( https://github.com/coursera-dl/edx-dl )。
 
 看起来原来的项目已经无人维护了，按照 edX 官方提供的 API 修改了原来的代码。由于本人比较菜、没怎么写过 python 代码，也顺便删掉了一些看得不顺眼的功能（具体见下）。
 
