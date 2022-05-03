@@ -132,7 +132,7 @@ def mkdir_p(path, mode=0o777):
             raise
 
 
-def clean_filename(s, minimal_change=False):
+def clean_filename(s, minimal_change=True):
     """
     Sanitize a string to be used as a filename.
     If minimal_change is set to true, then we only strip the bare minimum of
