@@ -7,16 +7,12 @@ It corresponds to the cli interface
 """
 
 import argparse
-import enum
 import getpass
 import json
 import logging
 import os
 import re
 import sys
-
-from functools import partial
-from multiprocessing.dummy import Pool as ThreadPool
 
 from six.moves.http_cookiejar import CookieJar
 from six.moves.urllib.error import HTTPError, URLError
