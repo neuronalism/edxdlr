@@ -6,10 +6,16 @@ Parsing and extraction functions
 import enum
 import re
 import json
+import sys
 
 from datetime import timedelta, datetime
 
-from six.moves import html_parser
+if sys.version_info[0] >= 3:
+    import html
+else:
+    from six.moves import html_parser    
+    html = html_parser.HTMLParser()
+
 from bs4 import BeautifulSoup as BeautifulSoup_
 
 from common import Course, Block, Video, WebPage, Material
@@ -116,6 +122,8 @@ class EdxExtractor(object):
         
         # page itself is a unit!
         units = [WebPage(None, page)]
+        
+        h = html
 
         video_units = re.compile('(<div.*?id="video_[0-9a-f]*".*?class="video closed".*?>.*?<\/div>)',re.DOTALL)                              
         for video_html in video_units.findall(page):
@@ -123,8 +131,8 @@ class EdxExtractor(object):
             re_metadata = re.compile(r"data-metadata='(.*?)'")
             match_metadatas = re_metadata.findall(video_html.replace('&#34;','"'))
             for match_metadata in match_metadatas:
-                metadata = html_parser.HTMLParser().unescape(match_metadata)
-                metadata = json.loads(html_parser.HTMLParser().unescape(metadata))
+                metadata = h.unescape(match_metadata)
+                metadata = json.loads(h.unescape(metadata))
                 units.append(Video(metadata))
 
         file_units = re.compile('(<a href=\"\/assets.*?\" target=\"\[object Object\]\">.*?<\/a>)',re.DOTALL)
