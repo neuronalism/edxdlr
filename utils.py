@@ -152,18 +152,19 @@ def clean_filename(s, minimal_change=True):
 
     # strip paren portions which contain trailing time length (...)
     s = (
-        s.replace(':', '-')
+        s.replace(':', ' ')
         .replace('/', '-')
         .replace('\x00', '-')
         .replace('\n', '')
+        .replace('?','')
+        .rstrip(' ') # Unpredictable spaces that disrupt the os
+        .rstrip('.') # Remove excess of trailing dots
     )
-
+    
     if minimal_change:
         return s
 
     s = s.replace('(', '').replace(')', '')
-    s = s.rstrip('.')  # Remove excess of trailing dots
-
     s = s.strip().replace(' ', '_')
     valid_chars = '-_.()%s%s' % (string.ascii_letters, string.digits)
     return ''.join(c for c in s if c in valid_chars)
