@@ -10,14 +10,12 @@ else:
     from six.moves import html_parser    
     html = html_parser.HTMLParser()
 
-
 import errno
 import json
 import logging
 import os
 import string
 import subprocess
-
 
 def get_filename_from_prefix(target_dir, filename_prefix):
     """
@@ -150,17 +148,23 @@ def clean_filename(s, minimal_change=True):
     h = html
     s = h.unescape(s)
 
-    # strip paren portions which contain trailing time length (...)
+    # remove reserved characters <>:"/\|?* for windows
     s = (
-        s.replace(':', ' ')
+        s.replace(':', '')
+        .replace('?', '')
+        .replace('"', '')
+        .replace('<', '_') 
+        .replace('>', '_')
         .replace('/', '-')
+        .replace('|', '-')
+        .replace('\\', '-')
+        .replace('*', '-')
         .replace('\x00', '-')
         .replace('\n', '')
-        .replace('?','')
-        .rstrip(' ') # Unpredictable spaces that disrupt the os
+        .strip(' ')  # Unpredictable spaces that disrupt the os
         .rstrip('.') # Remove excess of trailing dots
     )
-    
+
     if minimal_change:
         return s
 
