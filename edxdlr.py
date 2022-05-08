@@ -593,8 +593,8 @@ def download_video(video_unit, args, target_dir, filename_prefix, headers):
         m3u8_downloads = _build_url_downloads(video_unit.video_m3u8_urls, target_dir, filename_prefix)
         skip_or_download(m3u8_downloads, headers, args, f=download_m3u8)
     else:
-    mp4_downloads = _build_url_downloads(video_unit.video_mp4_urls, target_dir, filename_prefix)
-    skip_or_download(mp4_downloads, headers, args)
+        mp4_downloads = _build_url_downloads(video_unit.video_mp4_urls, target_dir, filename_prefix)
+        skip_or_download(mp4_downloads, headers, args)
 
     if args.subtitles:
         sub_downloads = _build_subtitles_downloads(video_unit, target_dir, filename_prefix, headers)
@@ -658,17 +658,16 @@ def download_course(args, course_block, headers, file_formats):
         for s,sequential in enumerate(chapter.children):
 
             sequential_dirname = clean_filename("%02d-%s" % (s+1, sequential.name))
+            target_dir = os.path.join(base_dir,chapter_dirname,sequential_dirname)
+            mkdir_p(target_dir)
 
             for v,vertical in enumerate(sequential.children):
-                
-                vertical_dirname = clean_filename("%02d-%s" % (v+1,vertical.name))
-                target_dir = os.path.join(base_dir,chapter_dirname,sequential_dirname,vertical_dirname)
-                mkdir_p(target_dir)
-                counter = 0
-
+                vertical_name = clean_filename("%02d-%s" % (v+1,vertical.name))
                 vunits = extract_units(vertical.url, headers, file_formats)
+                
+                counter = 0                
                 for unitobj in vunits:
-                    filename_prefix = "%02d" % (counter)
+                    filename_prefix = vertical_name + '-' + ("%02d" % (counter))
                     download_unit(unitobj, args, target_dir, filename_prefix, headers)
                     counter += 1
 
