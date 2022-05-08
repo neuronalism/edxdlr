@@ -183,5 +183,6 @@ class Video(object):
         self.video_baseurl = jsontext['lmsRootURL']
         self.video_url = jsontext['sources']
         self.video_mp4_urls = [url for url in jsontext['sources'] if url.endswith('.mp4')]
+        self.video_m3u8_urls = [url for url in jsontext['sources'] if url.endswith('.m3u8')]
         self.subs_available_url = jsontext['transcriptAvailableTranslationsUrl']
         self.subs_template_url = jsontext['transcriptTranslationUrl']

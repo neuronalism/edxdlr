@@ -13,6 +13,7 @@ import logging
 import os
 import re
 import sys
+import m3u8dl
 
 from six.moves.http_cookiejar import CookieJar
 from six.moves.urllib.error import HTTPError, URLError
@@ -216,6 +217,12 @@ def parse_args():
                         help='if active overwrites the file formats to be '
                         'extracted')
 
+    parser.add_argument('--download-m3u8',
+                        dest='m3u8',
+                        action='store_true',
+                        default=False,
+                        help='download video using m3u8 (ffmpeg required)')
+
     parser.add_argument('--cache',
                         dest='cache',
                         action='store_true',
@@ -315,11 +322,11 @@ def parse_courses(args, available_courses):
     """
     if args.list_courses:
         _display_courses(available_courses)
-        exit(ExitCode.OK)
+        sys.exit(ExitCode.OK)
 
     if len(args.course_urls) == 0:
         logging.error('You must pass the URL of at least one course, check the correct url with --list-courses')
-        exit(ExitCode.MISSING_COURSE_URL)
+        sys.exit(ExitCode.MISSING_COURSE_URL)
 
     selected_courses = [available_course
                         for available_course in available_courses
@@ -327,7 +334,7 @@ def parse_courses(args, available_courses):
                         if available_course.url.find(url)>=0] #CHANGE: dont know why to use find 
     if len(selected_courses) == 0:
         logging.error('You have not passed a valid course url, check the correct url with --list-courses')
-        exit(ExitCode.INVALID_COURSE_URL)
+        sys.exit(ExitCode.INVALID_COURSE_URL)
     return selected_courses
 
 # ######## get blocks and sort them out
@@ -546,6 +553,25 @@ def download_url(url, filename, headers, args):
         else:
             logging.warn('SSL/Connection error ignored: %s', e)
 
+def download_m3u8(url, filename, headers, args):
+    """
+    Downloads the given url in filename.
+    """
+
+    try:
+        filename = filename.rstrip('m3u8')+'mp4' 
+        url = m3u8dl.choose_max_resolution(url, headers, args)
+        m3u8dl.download_mp4(url, filename, headers, args)
+        
+    except Exception as e:
+        logging.warn('Got error from m3u8dl: ', e)
+        if not args.ignore_errors:
+            logging.warn('Hint: if you want to ignore this error, add '
+                            '--ignore-errors option to the command line')
+            raise e
+        else:
+            logging.warn('error ignored: %s', e)
+
 def skip_or_download(downloads, headers, args, f=download_url):
     """
     downloads url into filename using download function f,
@@ -563,6 +589,10 @@ def skip_or_download(downloads, headers, args, f=download_url):
 
 def download_video(video_unit, args, target_dir, filename_prefix, headers):
 
+    if args.m3u8:
+        m3u8_downloads = _build_url_downloads(video_unit.video_m3u8_urls, target_dir, filename_prefix)
+        skip_or_download(m3u8_downloads, headers, args, f=download_m3u8)
+    else:
     mp4_downloads = _build_url_downloads(video_unit.video_mp4_urls, target_dir, filename_prefix)
     skip_or_download(mp4_downloads, headers, args)
 
@@ -647,8 +677,11 @@ def main():
     Main program function
     """
     args = parse_args()
-    logging.info('edxls_dl version %s', __version__)
+    logging.info('edxdlr version %s', __version__)
     file_formats = parse_file_formats(args)
+    
+    if args.m3u8:
+        logging.info('To download using m3u8, please make sure ffmpeg is configured correctly.')
 
     # Query password, if not alredy passed by command line.
     if not args.password:
@@ -656,7 +689,7 @@ def main():
 
     if not args.username or not args.password:
         logging.error("You must supply username and password to log-in")
-        exit(ExitCode.MISSING_CREDENTIALS)
+        sys.exit(ExitCode.MISSING_CREDENTIALS)
 
     # Prepare Headers
     headers = edx_get_headers()
@@ -665,7 +698,7 @@ def main():
     resp = edx_login(LOGIN_API, headers, args.username, args.password)
     if not resp.get('success', False):
         logging.error(resp.get('value', "Wrong Email or Password."))
-        exit(ExitCode.WRONG_EMAIL_OR_PASSWORD)
+        sys.exit(ExitCode.WRONG_EMAIL_OR_PASSWORD)
 
     # Parse and select the available courses
     courses = get_courses_info_from_dashboard(DASHBOARD, headers)

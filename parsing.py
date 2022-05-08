@@ -207,8 +207,6 @@ class EdxExtractor(object):
         return resources_urls
 
 
-
-
 def is_youtube_url(url):
     re_youtube_url = re.compile(r'(https?\:\/\/(?:www\.)?(?:youtube\.com|youtu\.?be)\/.*?)')
     return re_youtube_url.match(url)
