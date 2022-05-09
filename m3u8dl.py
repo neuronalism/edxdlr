@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import subprocess
+import shutil
 from utils import clean_filename
 
 def get_m3u8_files(url, filename_prefix, headers, args):
@@ -44,7 +45,7 @@ def download_m3u8(url, filename, headers, args):
         else:
             url = ts_url
         # construct file name
-        ts_filename = filename + clean_filename(ts_filename)
+        ts_filename = filename + '-' + clean_filename(ts_filename)
 
         logging.debug('[m3u8dl] reading %s', url)
         #print('[m3u8dl] reading ' + url)
@@ -69,13 +70,24 @@ def merge_m3u8_to_mp4(ts_files, mp4filename):
     """
     logging.debug('[m3u8dl] merge ts segments')
     mp4filename = mp4filename.replace('.m3u8', '.mp4')
-    cmd = ['ffmpeg', '-i', "concat:{}".format("|".join(ts_files)), '-c:a', 'copy', '-c:v', 'copy', mp4filename]
+    
+    # merge ts files and then convert, in case the cmd gets too long
+    merged_filename = mp4filename.replace('.mp4', '.ts')
+    with open(merged_filename, 'wb') as merged:
+        for ts_file in ts_files:
+            with open(ts_file, 'rb') as tsfile:
+                shutil.copyfileobj(tsfile, merged)
+    # convert
     try:
-        subprocess.call(cmd, shell=False)
-        return True
+        devnull = open(os.devnull, 'w')
+        cmd = ['ffmpeg', '-i', merged_filename, '-c:a', 'copy', '-c:v', 'copy', mp4filename]
+        subprocess.run(cmd, shell=False, stdout=devnull, stderr=devnull) 
+        ts_files.append(merged_filename)
     except:
         logging.warn('[m3u8dl] ffmpeg not found, segments kept as-is')
-        return False
+
+    return ts_files
+    
 
 def clear_ts_files(ts_files):
     logging.debug('[m3u8dl] clear ts files')
@@ -88,9 +100,8 @@ def download_mp4(url, filename, headers, args):
     """
     filename_prefix = filename.rstrip('.m3u8')
     ts_files = download_m3u8(url, filename_prefix, headers, args)
-    success = merge_m3u8_to_mp4(ts_files, filename)
-    if success:
-        clear_ts_files(ts_files)
+    ts_files = merge_m3u8_to_mp4(ts_files, filename)
+    clear_ts_files(ts_files)
     
 def choose_max_resolution(url, headers, args):
     """
