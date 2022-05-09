@@ -523,7 +523,6 @@ def _build_filename_from_url(url, target_dir, filename_prefix):
     original_filename = url.rsplit('/', 1)[1]
     filename = os.path.join(target_dir,
                             filename_prefix + '-' + original_filename)
-
     return filename
 
 def download_url(url, filename, headers, args):
@@ -566,12 +565,11 @@ def download_m3u8(url, filename, headers, args):
     """
     Downloads the given url in filename.
     """
-
     try:
-        filename = filename.rstrip('m3u8')+'mp4' 
         url = m3u8dl.choose_max_resolution(url, headers, args)
         m3u8dl.download_mp4(url, filename, headers, args)
-        
+    except KeyboardInterrupt as e:
+        raise(e)
     except Exception as e:
         logging.warn('Got error from m3u8dl: ', e)
         if not args.ignore_errors:
@@ -710,16 +708,20 @@ def download_course_parallel(args, course_block, headers, file_formats):
         logging.info('Downloading %s [%s] in parallel', course_block.name, course_block.id)
 
         q_listener, q = setup_logger()
-        p = Pool(int(args.process), pool_init_logger, [q])
-        p.starmap(download_unit, argslist)
+        global pool
+        pool = Pool(int(args.process), pool_init, [q])
+        pool.starmap(download_unit, argslist)
         
     except KeyboardInterrupt:
-        p.terminate()
-        p.join()
+        pool.terminate()
+        pool.join()
+        logging.warn("\n\nCTRL-C detected, shutting down....")
+
     finally:
-        p.close()
-        p.join()
-        q_listener.stop()
+        pool.close()
+        pool.join()
+
+    q_listener.stop()
 
 # ####### main function
 
@@ -776,5 +778,5 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        logging.warn("\n\nCTRL-C detected, shutting down....")
+        logging.warning("\n\nCTRL-C detected, shutting down....")
         sys.exit(ExitCode.OK)
