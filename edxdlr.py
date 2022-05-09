@@ -10,6 +10,7 @@ import argparse
 import getpass
 import json
 import logging
+from logger import *
 import os
 import re
 import sys
@@ -699,11 +700,7 @@ def download_course_parallel(args, course_block, headers, file_formats):
                 for v,vertical in enumerate(sequential.children):
                     vertical_name = clean_filename("%02d-%s" % (v+1,vertical.name))
                     vunits = extract_units(vertical.url, headers, file_formats) 
-                vunits = extract_units(vertical.url, headers, file_formats)
-                    vunits = extract_units(vertical.url, headers, file_formats) 
 
-                    counter = 0
-                counter = 0                
                     counter = 0
                     for unitobj in vunits:
                         filename_prefix = vertical_name + '-' + ("%02d" % (counter))
@@ -711,15 +708,20 @@ def download_course_parallel(args, course_block, headers, file_formats):
                         counter += 1
         
         logging.info('Downloading %s [%s] in parallel', course_block.name, course_block.id)
-        p = Pool(int(args.process))
-        p.starmap(download_unit, argslist)
-        p.close()
 
+        q_listener, q = setup_logger()
+        p = Pool(int(args.process), pool_init_logger, [q])
+        p.starmap(download_unit, argslist)
+        
     except KeyboardInterrupt:
         p.terminate()
-    finally:
         p.join()
+    finally:
+        p.close()
+        p.join()
+        q_listener.stop()
 
+# ####### main function
 
 def main():
     """
@@ -728,9 +730,6 @@ def main():
     args = parse_args()
     logging.info('edxdlr version %s', __version__)
     file_formats = parse_file_formats(args)
-    
-    if args.m3u8:
-        logging.info('To download using m3u8, please make sure ffmpeg is configured correctly.')
 
     # Query password, if not alredy passed by command line.
     if not args.password:
@@ -770,12 +769,8 @@ def main():
         for course_block in all_blocks.values():
             download_course(args, course_block, headers, file_formats)
     else:
-
         for course_block in all_blocks.values():
             download_course_parallel(args, course_block, headers, file_formats)
-    
-
-
 
 if __name__ == '__main__':
     try:
