@@ -24,18 +24,11 @@ def setup_logger():
 
     return ql, q
 
-def signal_handler(sig, frame):
-    global pool
-    pool.terminate()
-    pool.join()
-    raise(KeyboardInterrupt)
-
-def pool_init(q):
+def logger_init(q):
     # all records from worker processes go to qh and then into q
     logging_level = logging.INFO
     qh = QueueHandler(q)
     logger = logging.getLogger()
     logger.setLevel(logging_level)
     logger.addHandler(qh)
-    # make it responsive to Ctrl-C
-    signal.signal(signal.SIGINT, signal_handler)
+
