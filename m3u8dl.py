@@ -7,7 +7,7 @@ import re
 import subprocess
 from utils import clean_filename
 
-def get_m3u8_files(url, headers, args):
+def get_m3u8_files(url, filename_prefix, headers, args):
     """
     Retrieve the list of files to download.
     """
@@ -18,6 +18,12 @@ def get_m3u8_files(url, headers, args):
     for line in m3u8_content.splitlines():
         if line[0:1]!='#':
             filenames.append(line)
+
+    # construct file name
+    with open(filename_prefix+'.m3u8', "w") as m3u8file:
+        m3u8file.write(r.text)
+        m3u8file.close()
+    
     return filenames
 
 def download_m3u8(url, filename, headers, args):
@@ -27,7 +33,7 @@ def download_m3u8(url, filename, headers, args):
     ok = True
     ts_files = []
     
-    urls = get_m3u8_files(url, headers, args)
+    urls = get_m3u8_files(url, filename, headers, args)
     for ts_url in urls:
         ts_filename = ts_url.split('/').pop()
 
@@ -62,6 +68,7 @@ def merge_m3u8_to_mp4(ts_files, mp4filename):
     Downloads the given m3u8 url and merge it as mp4.
     """
     logging.debug('[m3u8dl] merge ts segments')
+    mp4filename = mp4filename.replace('.m3u8', '.mp4')
     cmd = ['ffmpeg', '-i', "concat:{}".format("|".join(ts_files)), '-c:a', 'copy', '-c:v', 'copy', mp4filename]
     try:
         subprocess.call(cmd, shell=False)
@@ -79,7 +86,7 @@ def download_mp4(url, filename, headers, args):
     """
     Downloads the given m3u8 url and merge it as mp4.
     """
-    filename_prefix = filename.rstrip('.mp4')
+    filename_prefix = filename.rstrip('.m3u8')
     ts_files = download_m3u8(url, filename_prefix, headers, args)
     success = merge_m3u8_to_mp4(ts_files, filename)
     if success:
