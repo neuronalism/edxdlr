@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import m3u8dl
+from multiprocessing import Pool
 
 from six.moves.http_cookiejar import CookieJar
 from six.moves.urllib.error import HTTPError, URLError
@@ -51,6 +52,7 @@ from utils import (
     post_page_contents_as_json,
     mkdir_p
 )
+
 
 #CHANGES: redefining urls
 BASE_URL = 'https://courses.edx.org'
@@ -216,6 +218,12 @@ def parse_args():
                         default=False,
                         help='if active overwrites the file formats to be '
                         'extracted')
+
+    parser.add_argument('--process',
+                        dest='process',
+                        action='store',
+                        default=None,
+                        help='speed up using multiple processes')
 
     parser.add_argument('--download-m3u8',
                         dest='m3u8',
@@ -652,24 +660,66 @@ def download_course(args, course_block, headers, file_formats):
 
     # Download Videos
     for c,chapter in enumerate(course_block.children):
-
         chapter_dirname = clean_filename("%02d-%s" % (c+1, chapter.name))
-
         for s,sequential in enumerate(chapter.children):
-
             sequential_dirname = clean_filename("%02d-%s" % (s+1, sequential.name))
             target_dir = os.path.join(base_dir,chapter_dirname,sequential_dirname)
             mkdir_p(target_dir)
-
+    
             for v,vertical in enumerate(sequential.children):
                 vertical_name = clean_filename("%02d-%s" % (v+1,vertical.name))
-                vunits = extract_units(vertical.url, headers, file_formats)
+                vunits = extract_units(vertical.url, headers, file_formats) 
                 
-                counter = 0                
+                counter = 0
                 for unitobj in vunits:
                     filename_prefix = vertical_name + '-' + ("%02d" % (counter))
                     download_unit(unitobj, args, target_dir, filename_prefix, headers)
-                    counter += 1
+                    counter += 1 
+
+def download_course_parallel(args, course_block, headers, file_formats):
+    """
+    Downloads all the resources based on the selections
+    """
+    logging.info('Processing %s [%s] ', course_block.name, course_block.id)
+    logging.info("Output directory: " + args.output_dir)
+
+    coursename = clean_filename(course_block.name)
+    base_dir = os.path.join(args.output_dir, coursename)
+
+    # Download Videos
+    try:
+        argslist = []
+        for c,chapter in enumerate(course_block.children):
+            chapter_dirname = clean_filename("%02d-%s" % (c+1, chapter.name))
+            for s,sequential in enumerate(chapter.children):
+                sequential_dirname = clean_filename("%02d-%s" % (s+1, sequential.name))
+                target_dir = os.path.join(base_dir,chapter_dirname,sequential_dirname)
+                mkdir_p(target_dir)
+        
+                for v,vertical in enumerate(sequential.children):
+                    vertical_name = clean_filename("%02d-%s" % (v+1,vertical.name))
+                    vunits = extract_units(vertical.url, headers, file_formats) 
+                vunits = extract_units(vertical.url, headers, file_formats)
+                    vunits = extract_units(vertical.url, headers, file_formats) 
+
+                    counter = 0
+                counter = 0                
+                    counter = 0
+                    for unitobj in vunits:
+                        filename_prefix = vertical_name + '-' + ("%02d" % (counter))
+                        argslist.append((unitobj, args, target_dir, filename_prefix, headers))
+                        counter += 1
+        
+        logging.info('Downloading %s [%s] in parallel', course_block.name, course_block.id)
+        p = Pool(int(args.process))
+        p.starmap(download_unit, argslist)
+        p.close()
+
+    except KeyboardInterrupt:
+        p.terminate()
+    finally:
+        p.join()
+
 
 def main():
     """
@@ -689,7 +739,7 @@ def main():
     if not args.username or not args.password:
         logging.error("You must supply username and password to log-in")
         sys.exit(ExitCode.MISSING_CREDENTIALS)
-
+    
     # Prepare Headers
     headers = edx_get_headers()
 
@@ -699,6 +749,10 @@ def main():
         logging.error(resp.get('value', "Wrong Email or Password."))
         sys.exit(ExitCode.WRONG_EMAIL_OR_PASSWORD)
 
+    # prompt for m3u8
+    if args.m3u8:
+        logging.info('To download using m3u8, please make sure ffmpeg is configured correctly.')
+    
     # Parse and select the available courses
     courses = get_courses_info_from_dashboard(DASHBOARD, headers)
     available_courses = [course for course in courses if course.state == 'Started']
@@ -711,9 +765,16 @@ def main():
     for selected_course in selected_courses:
         _display_chapters(all_blocks[selected_course])
 
-    # Download all resources sequentially    
-    for course_block in all_blocks.values():
-        download_course(args, course_block, headers, file_formats)
+    # Download all resources
+    if not args.process:   
+        for course_block in all_blocks.values():
+            download_course(args, course_block, headers, file_formats)
+    else:
+
+        for course_block in all_blocks.values():
+            download_course_parallel(args, course_block, headers, file_formats)
+    
+
 
 
 if __name__ == '__main__':
