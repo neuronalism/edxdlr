@@ -13,7 +13,7 @@
 **两个常用命令：**
 
 - 查看所有课程  `python edxdlr.py -u USERNAME -p PASSWORD --list-courses`
-- 下载某一门课  `python edxdlr.py -u USERNAME -p PASSWORD COURSEID`(COURSEID 见下)
+- 下载某一门课  `python edxdlr.py -u USERNAME -p PASSWORD COURSEID` 
 
 其它命令可 `python edxdlr.py --help` 来查看。
 
@@ -43,7 +43,7 @@
 - 移除：各种我看不懂的 filter 功能（x
 - 移除：从 YouTube 下载视频的功能（现在 edX 的视频在 CDN 上基本都有，通用性更强）
 
-### 特性：`--download-m3u8` 高清下载
+### 特性说明：`--download-m3u8` 高清下载
 
 - 程序默认下载的是默认清晰度的 mp4 视频。如需下载更高清晰度，请：
 
@@ -51,9 +51,9 @@
 2. 将其添加到系统的可执行路径中
 3. 在 edxdlr 后面的参数中增加 `--download-m3u8` 选项
 
-使用 m3u8 方式将下载最高清晰度的视频。
+使用 m3u8 方式将下载最高清晰度的视频。如果没有 ffmpeg 来转码，文件夹内将会保留合并后尚未转码的 ts 文件，需使用可解码的播放器（如 [VLC](https://www.videolan.org/)）才能播放。
 
-### 特性：`--process k` 多进程下载 (beta)
+### 特性说明：`--process k` 多进程下载 (beta)
 
 - 可使用 `--process k`，其中 k 为建立的进程数量。该数值不建议过高，过高的进程数将占用大量内存，并可能有 IP 封禁的风险。
 - 使用多进程下载时，所有待下载内容会先顺序读取，然后以多进程方式同步下载，能极大提高下载速度。
@@ -64,15 +64,12 @@
 1. 这程序会不会记录我的密码？
 
    会，但只在运行时候记住。下次运行还要再输入一次。（你不给也没法登录啊）
-
 2. 访问不了 edx？
 
    这我帮不了你。
-
 3. 有课程下不了？
 
    在浏览器里登录账号后，在 dashboard 里确认你的课程符合上面说的课程链接格式，且是 Started 或 Archived。旧格式课程可使用原来的 [edx-dl](https://github.com/coursera-dl/edx-dl) 下载。如果还是下载不了，发个 issue，带上课程链接和报错信息我看看。
-
 4. 其它程序崩溃问题？
 
    任何出错，都先看看浏览器里自己的账号能不能登录、dashboard 能不能看到、课程链接都对不对。如果都符合条件，请发个 issue，带上课程链接和报错信息我看看。
