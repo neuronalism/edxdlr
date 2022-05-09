@@ -11,7 +11,7 @@ def get_m3u8_files(url, headers, args):
     """
     Retrieve the list of files to download.
     """
-    logging.debug('[m3u8] reading %s', url)
+    logging.debug('[m3u8dl] reading %s', url)
     filenames = []
     r = requests.get(url, headers=headers)
     m3u8_content = r.text
@@ -40,8 +40,8 @@ def download_m3u8(url, filename, headers, args):
         # construct file name
         ts_filename = filename + clean_filename(ts_filename)
 
-        logging.debug('[m3u8] reading %s', url)
-        #print('[m3u8] reading ' + url)
+        logging.debug('[m3u8dl] reading %s', url)
+        #print('[m3u8dl] reading ' + url)
         r = requests.get(url, headers=headers)
         if r.status_code == requests.codes.OK:
             with open(ts_filename, "wb") as ts:
@@ -61,12 +61,17 @@ def merge_m3u8_to_mp4(ts_files, mp4filename):
     """
     Downloads the given m3u8 url and merge it as mp4.
     """
-    logging.debug('[m3u8] merging files')
+    logging.debug('[m3u8dl] merge ts segments')
     cmd = ['ffmpeg', '-i', "concat:{}".format("|".join(ts_files)), '-c:a', 'copy', '-c:v', 'copy', mp4filename]
-    subprocess.call(cmd, shell=False)
+    try:
+        subprocess.call(cmd, shell=False)
+        return True
+    except:
+        logging.warn('[m3u8dl] ffmpeg not found, segments kept as-is')
+        return False
 
 def clear_ts_files(ts_files):
-    logging.debug('[m3u8] clear ts files')
+    logging.debug('[m3u8dl] clear ts files')
     for tsfile in ts_files:
         os.remove(tsfile)
 
@@ -76,14 +81,15 @@ def download_mp4(url, filename, headers, args):
     """
     filename_prefix = filename.rstrip('.mp4')
     ts_files = download_m3u8(url, filename_prefix, headers, args)
-    merge_m3u8_to_mp4(ts_files, filename)
-    clear_ts_files(ts_files)
+    success = merge_m3u8_to_mp4(ts_files, filename)
+    if success:
+        clear_ts_files(ts_files)
     
 def choose_max_resolution(url, headers, args):
     """
     Detect and get max res m3u8 file
     """
-    logging.debug('[m3u8] reading %s', url)
+    logging.debug('[m3u8dl] reading %s', url)
     
     r = requests.get(url, headers=headers)
     m3u8_content = r.text
@@ -94,8 +100,9 @@ def choose_max_resolution(url, headers, args):
     default_url = url
 
     for l in list(range(len(lines))):
-        if lines[l][0:17]=='#EXT-X-STREAM-INF':
-            r = re.search('RESOLUTION=(\d+)x(\d+)',lines[l]) #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=348844,RESOLUTION=1664x936
+        if lines[l][0:17]=='#EXT-X-STREAM-INF':  
+            # #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=348844,RESOLUTION=1664x936
+            r = re.search('RESOLUTION=(\d+)x(\d+)',lines[l]) 
             res = int(r[1])*int(r[2])
             if res>default_resolution:
                 default_resolution = res

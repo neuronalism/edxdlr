@@ -26,23 +26,22 @@
 
 ### 安装要求
 
-需要 python 3.6 或更高环境，以及下列依赖包（可用 pip 安装）：
+需要 python 3.6 或更高环境，以及下列依赖：
 
 - beautifulsoup4
 - html5lib
 - six
 - requests
-- (可选) m3u8_TO_MP4 (和 ffmpeg)
+- （可选）ffmpeg，配合 `--download-m3u8` 选项使用
 
-也可用 `pip install -r requirements.txt` 安装。
+可用 `pip install -r requirements.txt` 安装前四项。
 
-如果使用 `--download-m3u8` 下载高清视频，请添加 ffmpeg 到可执行路径中。默认下载的是标清 mp4 文件，无需 ffmpeg。
+如需使用 `--download-m3u8` 下载更高清晰度，请前往 [ffmpeg 官网](https://ffmpeg.org/download.html) 下载程序，并将其添加到系统的可执行路径中。此选项会读取最高清晰度的视频进行下载。不使用此选项，则会下载默认清晰度的 mp4 视频，无需 ffmpeg。
 
 ### 与原 edx-dl 的不同之处
 
 - 修改：选择课程时，不需要输入完整课程路径，只要输入课程ID即可。
 - 增加：网页下载功能。原来的 edx-dl 只下载视频、不下载网页，现在都会下载并放在文件夹里。**目前网页内图片下载还有问题**，我想想要怎么解决（也可能不解决了
-- 增加：视频下载支持高清，需使用 `--download-m3u8`。如需使用此功能，你需要提前下载 ffmpeg 并将其添加到可执行路径中。默认下载的是 mp4 格式的标清视频。
 - 移除：多线程下载，也就是现在所有的都是 `–sequential` 方式下载（因为我电脑上总是会报错）
 - 移除：各自我看不懂的 filter 功能（x
 - 移除：从 YouTube 下载视频的功能（本来 edX 不少视频都在 CDN 上有，干嘛要多个 youtube-dl 的依赖呢）
