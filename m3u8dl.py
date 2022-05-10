@@ -104,7 +104,7 @@ def download_mp4(url, filename, headers, args):
     """
     filename_prefix = filename.rstrip('.m3u8')
     ts_files = download_m3u8(url, filename_prefix, headers, args)
-    ts_files = merge_m3u8_to_mp4(ts_files, filename)
+    ts_files = merge_m3u8_to_mp4(ts_files, filename, args)
     clear_ts_files(ts_files)
     
 def choose_max_resolution(url, headers, args):
