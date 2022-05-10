@@ -676,18 +676,17 @@ def download_course(args, course_block, headers, file_formats):
                     download_unit(unitobj, args, target_dir, filename_prefix, headers)
                     counter += 1 
 
-def ctrlc_handler(sig, frame):
-    global pool
-    pool.terminate()
-    pool.join()
-    raise(KeyboardInterrupt)
-
-def pool_init(q):
-    logger_init(q)
-    # make it responsive to Ctrl-C
-    signal.signal(signal.SIGINT, ctrlc_handler)
-
 def download_course_parallel(args, course_block, headers, file_formats):
+    def ctrlc_handler(sig, frame):
+        global pool
+        pool.terminate()
+        pool.join()
+        raise(KeyboardInterrupt)
+
+    def pool_init(q):
+        logger_init(q)
+        # make it responsive to Ctrl-C
+        signal.signal(signal.SIGINT, ctrlc_handler)
     """
     Downloads all the resources based on the selections
     """

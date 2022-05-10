@@ -6,7 +6,10 @@ import os
 import re
 import subprocess
 import shutil
-from utils import clean_filename
+from utils import (
+    clean_filename,
+    execute_command
+)
 
 def get_m3u8_files(url, filename_prefix, headers, args):
     """
@@ -64,7 +67,7 @@ def download_m3u8(url, filename, headers, args):
     else:
         return ts_files
     
-def merge_m3u8_to_mp4(ts_files, mp4filename):
+def merge_m3u8_to_mp4(ts_files, mp4filename, args):
     """
     Downloads the given m3u8 url and merge it as mp4.
     """
@@ -81,13 +84,14 @@ def merge_m3u8_to_mp4(ts_files, mp4filename):
     try:
         devnull = open(os.devnull, 'w')
         cmd = ['ffmpeg', '-i', merged_filename, '-c:a', 'copy', '-c:v', 'copy', mp4filename]
-        subprocess.run(cmd, shell=False, stdout=devnull, stderr=devnull) 
+        subprocess.check_call(cmd, shell=False, stdout=devnull) 
         ts_files.append(merged_filename)
-    except:
-        logging.warn('[m3u8dl] ffmpeg not found, segments kept as-is')
-
+    except subprocess.CalledProcessError as e:
+        if args.ignore_errors:
+            logging.warn('[m3u8dl] ffmpeg not found, segments kept as-is')
+        else:
+            raise e
     return ts_files
-    
 
 def clear_ts_files(ts_files):
     logging.debug('[m3u8dl] clear ts files')
