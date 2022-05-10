@@ -6,10 +6,7 @@ import os
 import re
 import subprocess
 import shutil
-from utils import (
-    clean_filename,
-    execute_command
-)
+from utils import clean_filename
 
 def get_m3u8_files(url, filename_prefix, headers, args):
     """
@@ -50,17 +47,28 @@ def download_m3u8(url, filename, headers, args):
         # construct file name
         ts_filename = filename + '-' + clean_filename(ts_filename)
 
-        logging.debug('[m3u8dl] reading %s', url)
-        #print('[m3u8dl] reading ' + url)
-        r = requests.get(url, headers=headers)
-        if r.status_code == requests.codes.OK:
-            with open(ts_filename, "wb") as ts:
-                ts.write(r.content)
-                ts.close()
-                ts_files.append(ts_filename)
+        if os.path.exists(ts_filename):
+            logging.debug('[m3u8dl] skipping %s', url)
+            ts_files.append(ts_filename)
         else:
-            logging.error('failed to get ts file '+url)
-            ok = False
+            logging.debug('[m3u8dl] reading %s', url)
+            
+            attempts = 0
+            while attempts<=3:
+                r = requests.get(url, headers=headers)
+                if r.status_code == requests.codes.OK:
+                    break
+                logging.error('failed to get ts file '+url+', retrying ['+str(attempts)+']')
+                attempts = attempts + 1
+            
+            if r.status_code == requests.codes.OK:
+                with open(ts_filename, "wb") as ts:
+                    ts.write(r.content)
+                    ts.close()
+                    ts_files.append(ts_filename)
+            else:
+                logging.error('failed to get ts file '+url)
+                ok = False
 
     if not ok:
         return []
@@ -104,8 +112,13 @@ def download_mp4(url, filename, headers, args):
     """
     filename_prefix = filename.rstrip('.m3u8')
     ts_files = download_m3u8(url, filename_prefix, headers, args)
-    ts_files = merge_m3u8_to_mp4(ts_files, filename, args)
-    clear_ts_files(ts_files)
+    if ts_files:
+        ts_files = merge_m3u8_to_mp4(ts_files, filename, args)
+        clear_ts_files(ts_files)        
+    else:
+        logging.error('failed to download %s', url)
+        os.remove(filename)
+
     
 def choose_max_resolution(url, headers, args):
     """
