@@ -55,7 +55,6 @@ from utils import (
     mkdir_p
 )
 
-
 #CHANGES: redefining urls
 BASE_URL = 'https://courses.edx.org'
 EDX_HOMEPAGE = BASE_URL
@@ -67,6 +66,9 @@ COURSE_METADATA_JSON = BASE_URL + '/api/course_home/course_metadata/'
 COURSE_OUTLINE_JSON = BASE_URL + '/api/course_home/outline/'
 COURSE_BLOCK_API = BASE_URL + '/api/courses/v2/blocks/'
 USERNAME = '' #CHANGE: required for blocks
+
+# for parallel downloading
+global pool
 
 # ######## login issues ########
 
@@ -569,16 +571,14 @@ def download_m3u8(url, filename, headers, args):
     try:
         url = m3u8dl.choose_max_resolution(url, headers, args)
         m3u8dl.download_mp4(url, filename, headers, args)
-    except KeyboardInterrupt as e:
-        raise(e)
     except Exception as e:
-        logging.warn('Got error from m3u8dl: ', e)
+        logging.warning('Got error from m3u8dl: ', e)
         if not args.ignore_errors:
-            logging.warn('Hint: if you want to ignore this error, add '
+            logging.warning('Hint: if you want to ignore this error, add '
                             '--ignore-errors option to the command line')
             raise e
         else:
-            logging.warn('error ignored: %s', e)
+            logging.warning('error ignored: %s', e)
 
 def skip_or_download(downloads, headers, args, f=download_url):
     """
@@ -688,7 +688,6 @@ def pool_init(q):
     signal.signal(signal.SIGINT, ctrlc_handler)
 
 def download_course_parallel(args, course_block, headers, file_formats):
-
     """
     Downloads all the resources based on the selections
     """

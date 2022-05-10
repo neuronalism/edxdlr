@@ -62,7 +62,7 @@ def download_m3u8(url, filename, headers, args):
                 r = requests.get(url, headers=headers)
                 if r.status_code == requests.codes.OK:
                     break
-                logging.error('failed to get ts file '+url+', retrying ['+str(attempts)+']')
+                logging.error('\nfailed to get ts file %s, retrying [%d]', url, attempts)
                 attempts = attempts + 1
             
             if r.status_code == requests.codes.OK:
