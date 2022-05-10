@@ -59,12 +59,16 @@ def download_m3u8(url, filename, headers, args):
             
             attempts = 0
             while attempts<=3:
-                r = requests.get(url, headers=headers)
-                if r.status_code == requests.codes.OK:
-                    break
-                logging.error('\nfailed to get ts file %s, retrying [%d]', url, attempts)
+                try:
+                    r = requests.get(url, headers=headers, timeout=10)
+                    if r.status_code == requests.codes.OK: 
+                        break
+                    logging.error('\nfailed to get ts file %s, retrying [%d]', url, attempts)
+                except:
+                    logging.error('\nNetwork error, retrying [%d]', attempts)
                 attempts = attempts + 1
-            
+                
+                
             if r.status_code == requests.codes.OK:
                 with open(ts_filename, "wb") as ts:
                     ts.write(r.content)
