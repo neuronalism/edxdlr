@@ -13,7 +13,7 @@
 **两个常用命令：**
 
 - 查看所有课程  `python edxdlr.py -u USERNAME -p PASSWORD --list-courses`
-- 下载某一门课  `python edxdlr.py -u USERNAME -p PASSWORD COURSEID` 
+- 下载某一门课  `python edxdlr.py -u USERNAME -p PASSWORD COURSEID`
 
 其它命令可 `python edxdlr.py --help` 来查看。
 
@@ -32,6 +32,7 @@
 - html5lib
 - six
 - requests
+- tqdm
 
 可用 `pip install -r requirements.txt` 安装。
 

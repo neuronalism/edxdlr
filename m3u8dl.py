@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import shutil
+from tqdm import tqdm
 from utils import clean_filename
 
 def get_m3u8_files(url, filename_prefix, headers, args):
@@ -35,7 +36,10 @@ def download_m3u8(url, filename, headers, args):
     ts_files = []
     
     urls = get_m3u8_files(url, filename, headers, args)
-    for ts_url in urls:
+
+    for i in tqdm(range(len(urls))):
+        
+        ts_url = urls[i]
         ts_filename = ts_url.split('/').pop()
 
         if ts_url[0:3]!='http': 
