@@ -64,7 +64,7 @@ def download_m3u8(url, filename, headers, args):
                     if r.status_code == requests.codes.OK: 
                         break
                     logging.error('\nfailed to get ts file %s, retrying [%d]', url, attempts)
-                except:
+                except requests.ConnectionError:
                     logging.error('\nNetwork error, retrying [%d]', attempts)
                 attempts = attempts + 1
                 
