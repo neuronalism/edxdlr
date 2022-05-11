@@ -161,6 +161,7 @@ def clean_filename(s, minimal_change=True):
         .replace('*', '-')
         .replace('\x00', '-')
         .replace('\n', '')
+        .replace('\t', '')
         .strip(' ')  # Unpredictable spaces that disrupt the os
         .rstrip('.') # Remove excess of trailing dots
     )
