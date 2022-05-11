@@ -539,6 +539,8 @@ def download_url(url, filename, headers, args):
     Downloads the given url in filename.
     """
     import requests
+    from tqdm.auto import tqdm
+    import shutil
     # FIXME: Ugly hack for coping with broken SSL sites:
     # https://www.cs.duke.edu/~angl/papers/imc10-cloudcmp.pdf
     #
@@ -552,37 +554,31 @@ def download_url(url, filename, headers, args):
     # order) is due to different behaviors in different Python versions
     # (e.g., 2.7 vs. 3.4).
     attempts = 0
-    while attempts <= args.retry:
-        try:
-            # obsolete: mitxpro fix for downloading compressed files
-            r = requests.get(url, headers=headers)
-            if r.status_code == requests.codes.OK: 
-                break
-            logging.error('\nfailed to get file %s, retrying [%d]', url, attempts)
-        except requests.ConnectionError as e:
-            logging.error('\nNetwork error (%s), retrying [%d]', e, attempts)
-        attempt = attempt + 1
+    success = False
+    while not success and attempts <= args.retry:
 
-    if r.status_code == requests.codes.OK: 
-        try:
-            with open(filename, 'wb') as fp:
-                fp.write(r.content)
-        except Exception as e:
-            if not args.ignore_errors:
-                logging.error('error occured: %s', e)
-                logging.warning('Hint: if you want to ignore this error, add '
-                            '--ignore-errors option to the command line')
-                raise e
-            else:
-                logging.warning('error ignored: %s', e)
-    else:
+        attempts = attempts + 1        
+        try:            
+            with requests.get(url, stream=True, headers=headers) as r:
+                total_size = int(r.headers.get("Content-Length", 0))
+                with tqdm.wrapattr(r.raw, "read", total=total_size, desc="") as data:
+                    with open(filename, 'wb')as output:
+                        shutil.copyfileobj(data, output)
+            success = True
+        except requests.ConnectionError as e:            
+            logging.warning('\nNetwork error (%s), retrying [%d]', e, attempts)
+        except:
+            logging.error('error occured, retrying [%d]: %s', attempts, e)
+
+    if not success:
+        os.remove(filename)
         if not args.ignore_errors:
-            logging.error('error occured: %s', e)
+            logging.error('error: failed to download %s', url)
             logging.warning('Hint: if you want to ignore this error, add '
                         '--ignore-errors option to the command line')
             raise e
         else:
-            logging.warning('error ignored: %s', e)
+            logging.warning('error ignored: failed to download %s', url)
 
 def download_m3u8(url, filename, headers, args):
     """
