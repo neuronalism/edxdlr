@@ -125,7 +125,7 @@ class EdxExtractor(object):
         
         h = html
 
-        video_units = re.compile('(<div.*?id="video_[0-9a-f]*".*?class="video closed".*?>.*?<\/div>)',re.DOTALL)                              
+        video_units = re.compile('(id="video_[0-9a-f]*".*?class="video closed".*?>.*?<\/div>)',re.DOTALL)
         for video_html in video_units.findall(page):
         
             re_metadata = re.compile(r"data-metadata='(.*?)'")
@@ -134,7 +134,7 @@ class EdxExtractor(object):
                 metadata = h.unescape(match_metadata)
                 metadata = json.loads(h.unescape(metadata))
                 units.append(Video(metadata))
-
+        
         file_units = re.compile('(<a href=\"\/assets.*?\" target=\"\[object Object\]\">.*?<\/a>)',re.DOTALL)
         for file_html in file_units.findall(page):
         

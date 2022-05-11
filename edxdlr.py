@@ -538,8 +538,6 @@ def download_url(url, filename, headers, args):
     """
     Downloads the given url in filename.
     """
-
-    import ssl
     import requests
     # FIXME: Ugly hack for coping with broken SSL sites:
     # https://www.cs.duke.edu/~angl/papers/imc10-cloudcmp.pdf
@@ -619,13 +617,23 @@ def skip_or_download(downloads, headers, args, f=download_url):
 
 def download_video(video_unit, args, target_dir, filename_prefix, headers):
 
-    if args.m3u8:
+    if args.m3u8 and len(video_unit.video_m3u8_urls)>0: 
+        # if m3u8 not exist, fallback to mp4
         m3u8_downloads = _build_url_downloads(video_unit.video_m3u8_urls, target_dir, filename_prefix)
-        skip_or_download(m3u8_downloads, headers, args, f=download_m3u8)
-    else:
+        skip_or_download(m3u8_downloads, headers, args, download_m3u8)
+    
+    elif len(video_unit.video_mp4_urls)>0:
+        
         mp4_downloads = _build_url_downloads(video_unit.video_mp4_urls, target_dir, filename_prefix)
         skip_or_download(mp4_downloads, headers, args)
-
+    
+    else: 
+        # force video link as mp4 download
+        mp4_downloads = {url:
+                        _build_filename_from_url(url, target_dir, filename_prefix)+'.mp4'
+                        for url in video_unit.video_url}
+        skip_or_download(mp4_downloads, headers, args)
+        
     if args.subtitles:
         sub_downloads = _build_subtitles_downloads(video_unit, target_dir, filename_prefix, headers)
         skip_or_download(sub_downloads, headers, args, download_subtitle)
