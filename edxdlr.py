@@ -235,6 +235,12 @@ def parse_args():
                         default=False,
                         help='download video using m3u8 (ffmpeg required)')
 
+    parser.add_argument('--retry',
+                        dest='retry',
+                        action='store',
+                        default=3,
+                        help='download retry times')
+
     parser.add_argument('--cache',
                         dest='cache',
                         action='store_true',
@@ -547,22 +553,38 @@ def download_url(url, filename, headers, args):
     # Note: The mess with various exceptions being caught (and their
     # order) is due to different behaviors in different Python versions
     # (e.g., 2.7 vs. 3.4).
-    try:
-        # mitxpro fix for downloading compressed files
-        if 'zip' in url and 'mitxpro' in url:
-            urlretrieve(url, filename)
-        else:
+    attempts = 0
+    while attempts <= args.retry:
+        try:
+            # obsolete: mitxpro fix for downloading compressed files
             r = requests.get(url, headers=headers)
+            if r.status_code == requests.codes.OK: 
+                break
+            logging.error('\nfailed to get file %s, retrying [%d]', url, attempts)
+        except requests.ConnectionError as e:
+            logging.error('\nNetwork error (%s), retrying [%d]', e, attempts)
+        attempt = attempt + 1
+
+    if r.status_code == requests.codes.OK: 
+        try:
             with open(filename, 'wb') as fp:
                 fp.write(r.content)
-    except Exception as e:
-        logging.warn('Got SSL/Connection error: %s', e)
-        if not args.ignore_errors:
-            logging.warn('Hint: if you want to ignore this error, add '
+        except Exception as e:
+            if not args.ignore_errors:
+                logging.error('error occured: %s', e)
+                logging.warning('Hint: if you want to ignore this error, add '
                             '--ignore-errors option to the command line')
+                raise e
+            else:
+                logging.warning('error ignored: %s', e)
+    else:
+        if not args.ignore_errors:
+            logging.error('error occured: %s', e)
+            logging.warning('Hint: if you want to ignore this error, add '
+                        '--ignore-errors option to the command line')
             raise e
         else:
-            logging.warn('SSL/Connection error ignored: %s', e)
+            logging.warning('error ignored: %s', e)
 
 def download_m3u8(url, filename, headers, args):
     """

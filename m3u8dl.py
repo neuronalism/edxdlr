@@ -58,7 +58,7 @@ def download_m3u8(url, filename, headers, args):
             logging.debug('[m3u8dl] reading %s', url)
             
             attempts = 0
-            while attempts<=3:
+            while attempts<=args.retry:
                 try:
                     r = requests.get(url, headers=headers, timeout=10)
                     if r.status_code == requests.codes.OK: 
@@ -67,7 +67,6 @@ def download_m3u8(url, filename, headers, args):
                 except requests.ConnectionError:
                     logging.error('\nNetwork error, retrying [%d]', attempts)
                 attempts = attempts + 1
-                
                 
             if r.status_code == requests.codes.OK:
                 with open(ts_filename, "wb") as ts:
@@ -100,7 +99,7 @@ def merge_m3u8_to_mp4(ts_files, mp4filename, args):
     try:
         devnull = open(os.devnull, 'w')
         cmd = ['ffmpeg', '-i', merged_filename, '-c:a', 'copy', '-c:v', 'copy', mp4filename]
-        subprocess.check_call(cmd, shell=False, stdout=devnull) 
+        subprocess.check_call(cmd, shell=False, stdout=devnull, stderr=devnull) 
         ts_files.append(merged_filename)
     except subprocess.CalledProcessError as e:
         if args.ignore_errors:
