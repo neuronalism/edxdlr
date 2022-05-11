@@ -401,7 +401,7 @@ def extract_units(url, headers, file_formats):
                             'view': 'student_view'}).encode('utf-8') 
     page = get_page_contents(url, headers)
     page_extractor = EdxExtractor()
-    units = page_extractor.extract_units_from_html(page, file_formats)
+    units = page_extractor.extract_units_from_html(url, page, file_formats)
 
     return units
 

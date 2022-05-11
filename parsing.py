@@ -112,7 +112,7 @@ class EdxExtractor(object):
 
         return all_blocks[root_id]
 
-    def extract_units_from_html(self, page, file_formats):
+    def extract_units_from_html(self, url, page, file_formats):
         """
         Extract Units from a vertical
         """
@@ -121,7 +121,7 @@ class EdxExtractor(object):
         # you don't need to !
         
         # page itself is a unit!
-        units = [WebPage(None, page)]
+        units = [WebPage(url, page)]
         
         h = html
 
