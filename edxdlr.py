@@ -567,7 +567,7 @@ def download_url(url, filename, headers, args):
             success = True
         except requests.ConnectionError as e:            
             logging.warning('\nNetwork error (%s), retrying [%d]', e, attempts)
-        except:
+        except Exception as e:
             logging.error('error occured, retrying [%d]: %s', attempts, e)
 
     if not success:
