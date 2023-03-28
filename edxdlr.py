@@ -5,7 +5,6 @@
 Main module for the edx-dl downloader.
 It corresponds to the cli interface
 """
-
 import argparse
 import getpass
 import json
@@ -63,61 +62,17 @@ EDX_HOMEPAGE = BASE_URL
 LOGIN_PAGE = 'https://authn.edx.org/login'
 LOGIN_API = BASE_URL + '/api/user/v2/account/login_session/'
 TOKEN_API = BASE_URL + '/csrf/api/v1/token'
-DASHBOARD = BASE_URL + '/dashboard'
-COURSE_METADATA_JSON = BASE_URL + '/api/course_home/course_metadata/'
-COURSE_OUTLINE_JSON = BASE_URL + '/api/course_home/outline/'
-COURSE_BLOCK_API = BASE_URL + '/api/courses/v2/blocks/'
-USERNAME = '' #CHANGE: required for blocks
+DASHBOARD_URL = 'https://home.edx.org'
+LEARNING_URL = 'https://learning.edx.org'
+COURSE_LIST_JSON_API = BASE_URL + '/api/learner_home/init'
+COURSE_OUTLINE_JSON_API = BASE_URL + '/api/course_home/outline'
+COURSE_SEQUENCE_JSON_API = BASE_URL + '/api/courseware/sequence'
+COURSE_BLOCK_API = BASE_URL + '/xblock'
 
 # for parallel downloading
 global pool
 
 # ######## login issues ########
-
-def _get_initial_token(url):
-    """
-    Create initial connection to get authentication token for future
-    requests.
-
-    Returns a string to be used in subsequent connections with the
-    X-CSRFToken header or the empty string if we didn't find any token in
-    the cookies.
-    """
-    logging.info('Getting initial CSRF token.')
-
-    cookiejar = CookieJar()
-    opener = build_opener(HTTPCookieProcessor(cookiejar))
-    install_opener(opener)
-    opener.open(url)
-
-    for cookie in cookiejar:
-        if cookie.name == 'csrftoken':
-            logging.info('Found CSRF token.')
-            return cookie.value
-
-    logging.warn('Did not find the CSRF token.')
-    return ''
-
-def edx_login(url, headers, email, password):
-    """
-    Log in user into the openedx website.
-    """
-    logging.info('Logging into edX.org: %s', url)
-
-    post_data = urlencode({'email_or_username': email,
-                           'password': password}).encode('utf-8') 
-    #CHANGES: i dont see a third argument in the browser, so removed it
-
-    request = Request(url, post_data, headers)
-    try:
-        response = urlopen(request)
-    except HTTPError as e:
-        logging.info('Error, cannot login: %s', e)
-        return {'success': False}
-
-    resp = json.loads(response.read().decode('utf-8'))
-
-    return {'success': True} #CHANGES: potentially wrong here, but it works now
 
 def parse_args():
     """
@@ -293,8 +248,28 @@ def edx_get_headers():
     """
     Build the Open edX headers to create future requests.
     """
-    logging.info('Building initial headers for future requests.')
+    def _get_initial_token(url):
+        """
+        Create initial connection to get authentication token for future
+        requests.
 
+        Returns a string to be used in subsequent connections with the
+        X-CSRFToken header or the empty string if we didn't find any token in
+        the cookies.
+        """
+        logging.info('Getting initial CSRF token.')
+
+        response = runtime.session.get(url)
+
+        for cookie in response.cookies:
+            if cookie.name == 'csrftoken':
+                logging.info('Found CSRF token.')
+                return cookie.value
+
+        logging.warn('Did not find the CSRF token.')
+        return ''
+
+    logging.info('Building initial headers for future requests.')
     headers = {
         'User-Agent': 'Mozilla/5.0',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -303,9 +278,26 @@ def edx_get_headers():
         'X-Requested-With': 'XMLHttpRequest',
         'X-CSRFToken': _get_initial_token(TOKEN_API),
     }
-    #CHANGES: token has a separate api, which is requested earlier than login post
     logging.debug('Headers built: %s', headers)
     return headers
+
+def edx_login(email, password):
+    """
+    Log in user into the openedx website.
+    """
+    
+    # simulate real request
+    response = runtime.session.get(LOGIN_PAGE, headers=runtime.headers)
+    
+    # then real request
+    logging.info('Logging into edX.org: %s', LOGIN_API)
+    post_data = {'email_or_username': email, 'password': password}
+    response = runtime.session.post(LOGIN_API, data=post_data, headers=runtime.headers)
+    
+    if response.status_code != 200:
+        logging.info('Error, cannot login: %s', response.status_code)
+    
+    return response
 
 # ######## list all courses ########
 
@@ -319,18 +311,40 @@ def _display_courses(courses):
         logging.info('%2d - %s [%s]', i, course.name, course.id)
         logging.info('     %s', course.url)
 
-def get_courses_info_from_dashboard(dashurl, headers):
+def get_courses_info_from_dashboard(dashurl):
     """
-    Extracts the courses information from the dashboard.
+    (obsolete) Extracts the courses information from the dashboard.
     """
     logging.info('Extracting course information from dashboard.')
 
-    page = get_page_contents(dashurl, headers)
+    page = get_page_contents(dashurl, runtime.headers)
     page_extractor = EdxExtractor()
+    username = page_extractor.extract_username_from_dashboard(page)
     courses = page_extractor.extract_courses_from_dashboard(page)
 
-    global USERNAME #CHANGE: required for blocks reading
-    USERNAME = page_extractor.extract_username_from_dashboard(page)
+    logging.debug('Data extracted: %s', courses)
+
+    return [username, courses]
+
+def get_username_from_cookies():
+    """
+    (not used) Extracts the courses information from cookies.
+    """
+    logging.info('Extracting user name from cookies.')
+    page_extractor = EdxExtractor()    
+    return page_extractor.extract_username_from_cookie(runtime.session.cookies)
+    
+def get_courses_info_from_json():
+    """
+    Extracts the courses information from cookies.
+    """
+    logging.info('Extracting course information from cookies.')
+    
+    page_extractor = EdxExtractor()
+    course_json = get_page_contents_as_json(COURSE_LIST_JSON_API, runtime.headers)
+    courses = page_extractor.extract_courses_from_json(course_json)  
+
+    # get username
 
     logging.debug('Data extracted: %s', courses)
 
@@ -359,26 +373,28 @@ def parse_courses(args, available_courses):
 
 # ######## get blocks and sort them out
 
-def get_available_blocks(course_id, username, headers):
+def get_available_blocks(course_id):
     """
     Extracts all blocks for a given course
     """
     logging.debug("Extracting blocks for " + course_id)
     
-    url = COURSE_BLOCK_API
-    get_params = urlencode({ 'course_id': course_id, 
-                            'username': username, 
-                            'depth': 3,
-                            'requested_fields': 'children,effort_activities,effort_time,show_gated_sections,graded,special_exam_info,has_scheduled_content'
-                        }).encode('utf-8').decode('utf-8')
-    #CHANGES: i dont see a third argument in the browser, so removed it
-    url = url + '?' + get_params
+    url = COURSE_OUTLINE_JSON_API + '/' + course_id
     logging.debug("Extracting from " + url)    
 
-    page = get_page_contents_as_json(url, headers, params=get_params)
+    page = get_page_contents_as_json(url, headers=runtime.headers)
     page_extractor = EdxExtractor()
-    blocks = page_extractor.extract_blocks_from_json(page)
+    blocks = page_extractor.extract_sequential_blocks_from_json(page)
 
+    block_names = list(blocks.keys())
+    for i, block_name in enumerate(block_names, 1):
+        if block_name.find('type@sequential')>=0:
+            url = COURSE_SEQUENCE_JSON_API + '/' + block_name
+            logging.debug("Extracting from " + url)
+            page = get_page_contents_as_json(url, headers=runtime.headers)
+            blocks = page_extractor.extract_vertical_blocks_from_sequential(blocks, page, COURSE_BLOCK_API)
+
+    blocks = page_extractor.sort_blocks(blocks);
     logging.debug("Extracted blocks: " + blocks.treeview())
     return blocks
 
@@ -797,6 +813,9 @@ def main():
     
     # Parse and select the available courses
     runtime.headers.update({'Referer': DASHBOARD_URL})
+    
+    #username = get_username_from_cookies()
+    courses = get_courses_info_from_json()
     available_courses = [course for course in courses if course.state == 'Started']
     selected_courses = parse_courses(args, available_courses)
 
@@ -804,7 +823,7 @@ def main():
     runtime.headers.update({'Referer': LEARNING_URL})
     runtime.headers.update({'Origin': LEARNING_URL})
     all_blocks = {selected_course:
-                    get_available_blocks(selected_course.id, USERNAME, headers)
+                    get_available_blocks(selected_course.id)
                     for selected_course in selected_courses}
     for selected_course in selected_courses:
         _display_chapters(all_blocks[selected_course])

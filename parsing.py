@@ -60,11 +60,29 @@ class EdxExtractor(object):
         #CHANGE: required to get blocks
         soup = BeautifulSoup(dashpagecontent)
         username = soup.find_all('span', 'username')
-        return username[0].text
+        if username==[]:
+            return []
+        else:
+            return username[0].text
 
+    def extract_username_from_cookie(self, cookies):
+        #CHANGE: sometimes dashboard do not have username
+
+        for cookie in cookies:
+            if cookie.name == "prod-edx-user-info":
+                break
+        
+        for useritems in re.split("\\\\054 ", cookie.value):
+            username = re.findall("username: (.*)", useritems)
+            if username != []:
+                username = username[0]
+                break
+        
+        return username
+        
     def extract_courses_from_dashboard(self, dashpagecontent):
         """
-        Extracts courses (Course) from the html page
+        (obsolete) Extracts courses (Course) from the html page
         Originally known as extract_courses_from_html
         """
         soup = BeautifulSoup(dashpagecontent)
@@ -97,21 +115,85 @@ class EdxExtractor(object):
 
         return courses
 
-    def extract_blocks_from_json(self, jsondict):
+    def extract_courses_from_json(self, jsondict):
         """
-        Extract blocks from the json file
+        Extract courses from the json file
         """
-        blocks_json = jsondict
-        root_id = blocks_json['root']
-        blocks_json = blocks_json['blocks']
+        courses = []
+        for c in jsondict['courses']:
+            
+            course_id = c['courseRun']['courseId']
+            course_name = c['course']['courseName']
+            course_url = c['courseRun']['homeUrl']
+
+            course_state = 'Expired'
+            if not (c['courseRun']['isStarted']):
+                course_state = 'Not yet'
+            elif (c['enrollment']['isAudit']) and not(c['enrollment']['isAuditAccessExpired']):
+                course_state = 'Started'
+            elif (c['enrollment']['isVerified']):
+                course_state = 'Started'
+            
+            courses.append(Course(id=course_id,
+                                  name=course_name,
+                                  url=course_url,
+                                  state=course_state))
+
+        return courses
+
+    def extract_sequential_blocks_from_json(self, jsondict):
+        """
+        Extract sequential blocks from the json file
+        """
+        blocks_json = jsondict['course_blocks']['blocks']
         all_block_names = list(blocks_json.keys())
         all_blocks = {block_name: Block(position = i, content = blocks_json[block_name])
                      for i, block_name in enumerate(all_block_names, 1)}
+        return all_blocks
+
+    def extract_vertical_blocks_from_sequential(self, all_blocks, vertical_json, url):
+        """
+        Extract and attach vertical blocks
+        """
+        parent_id = vertical_json['item_id']
+        blocks_json = vertical_json['items']
+        
+        for i,x in enumerate(blocks_json,1):
+            
+            vblock = dict()
+            vblock['position'] = len(all_blocks)+1
+            vblock['display_name'] = x['page_title']
+            vblock['type'] = 'vertical'
+            vblock['id'] = x['id']
+            vblock['lms_web_url'] = url + '/' + x['id'] + '?show_title=0&show_bookmark_button=0&recheck_access=1&view=student_view'
+            vblock['children'] = []
+        
+            all_blocks.update({x['id']: Block(position = len(all_blocks)+1, content = vblock)})
+            all_blocks[parent_id].childrenid.append(x['id']);
+
+        return all_blocks
+    
+    def sort_blocks(self, all_blocks):
+        """
+        Extract and attach vertical blocks
+        """
+        all_block_names = list(all_blocks.keys())
+        
+        # generate children
+        for i in all_blocks:
+            all_blocks[i].children = [all_blocks[x] for x in all_blocks[i].childrenid]
+
+        # generate tree
+        root_id = all_block_names[0]
+        for i, block_name in enumerate(all_block_names, 1):
+            if block_name.find('type@course'):
+                root_id = block_name
+                break
         for i in all_blocks:
             all_blocks[i].children = [all_blocks[x] for x in all_blocks[i].childrenid]
 
         return all_blocks[root_id]
-
+        
     def extract_units_from_html(self, url, page, file_formats):
         """
         Extract Units from a vertical

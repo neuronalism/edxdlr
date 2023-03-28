@@ -97,8 +97,7 @@ class Block(object):
         self.name = content['display_name']
         self.type = content['type']
         self.id = content['id']
-        self.url = content['student_view_url']
-        self.fullurl = content['lms_web_url']
+        self.url = content['lms_web_url']
         self.resource = None
         try:
             self.childrenid = content['children']
