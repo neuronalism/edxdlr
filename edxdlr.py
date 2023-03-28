@@ -316,11 +316,11 @@ def get_courses_info_from_dashboard(dashurl):
     (obsolete) Extracts the courses information from the dashboard.
     """
     logging.info('Extracting course information from dashboard.')
-
+    
     page = get_page_contents(dashurl, runtime.headers)
     page_extractor = EdxExtractor()
     username = page_extractor.extract_username_from_dashboard(page)
-    courses = page_extractor.extract_courses_from_dashboard(page)
+    courses = page_extractor.extract_courses_from_dashboard(page)    
 
     logging.debug('Data extracted: %s', courses)
 
@@ -470,9 +470,7 @@ def get_subtitles_urls(available_subs_url, sub_template_url, headers):
 
     return {}
 
-def edx_get_subtitle(url, headers,
-                     get_page_contents=get_page_contents,
-                     get_page_contents_as_json=get_page_contents_as_json):
+def edx_get_subtitle(url, headers):
     """
     Return a string with the subtitles content from the url or None if no
     subtitles are available.

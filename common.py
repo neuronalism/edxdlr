@@ -185,3 +185,4 @@ class Video(object):
         self.video_m3u8_urls = [url for url in jsontext['sources'] if url.endswith('.m3u8')]
         self.subs_available_url = jsontext['transcriptAvailableTranslationsUrl']
         self.subs_template_url = jsontext['transcriptTranslationUrl']
+        self.subs_languages = jsontext['transcriptLanguage']
