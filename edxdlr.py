@@ -18,17 +18,18 @@ import sys
 import m3u8dl
 from multiprocessing import Pool
 
-from six.moves.http_cookiejar import CookieJar
+#from six.moves.http_cookiejar import CookieJar
 from six.moves.urllib.error import HTTPError, URLError
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import (
-    urlopen,
-    build_opener,
-    install_opener,
-    HTTPCookieProcessor,
-    Request,
-    urlretrieve,
-)
+#from six.moves.urllib.parse import urlencode
+#from six.moves.urllib.request import (
+#    urlopen,
+#    build_opener,
+#    install_opener,
+#    HTTPCookieProcessor,
+#    Request,
+#    urlretrieve,
+#)
+import requests
 
 from _version import __version__
 
@@ -54,6 +55,7 @@ from utils import (
     post_page_contents_as_json,
     mkdir_p
 )
+import runtime
 
 #CHANGES: redefining urls
 BASE_URL = 'https://courses.edx.org'
@@ -395,10 +397,10 @@ def extract_units(url, headers, file_formats):
     """
     logging.info("Processing '%s'", url)
 
-    post_data = urlencode({ 'show_title': 0, 
-                            'show_bookmark_button': 0,
-                            'recheck_access': 1,
-                            'view': 'student_view'}).encode('utf-8') 
+    #post_data = urlencode({ 'show_title': 0, 
+    #                        'show_bookmark_button': 0,
+    #                        'recheck_access': 1,
+    #                        'view': 'student_view'}).encode('utf-8') 
     page = get_page_contents(url, headers)
     page_extractor = EdxExtractor()
     units = page_extractor.extract_units_from_html(url, page, file_formats)
@@ -779,13 +781,14 @@ def main():
         logging.error("You must supply username and password to log-in")
         sys.exit(ExitCode.MISSING_CREDENTIALS)
     
-    # Prepare Headers
-    headers = edx_get_headers()
+    # Prepare Headers and Session
+    runtime.initialize()
+    runtime.headers = edx_get_headers()
 
     # Login
-    resp = edx_login(LOGIN_API, headers, args.username, args.password)
-    if not resp.get('success', False):
-        logging.error(resp.get('value', "Wrong Email or Password."))
+    response = edx_login(args.username, args.password)
+    if response.status_code != 200:
+        logging.error("login failed")
         sys.exit(ExitCode.WRONG_EMAIL_OR_PASSWORD)
 
     # prompt for m3u8
@@ -793,11 +796,13 @@ def main():
         logging.info('To download using m3u8, please make sure ffmpeg is configured correctly.')
     
     # Parse and select the available courses
-    courses = get_courses_info_from_dashboard(DASHBOARD, headers)
+    runtime.headers.update({'Referer': DASHBOARD_URL})
     available_courses = [course for course in courses if course.state == 'Started']
     selected_courses = parse_courses(args, available_courses)
 
     # Get all course blocks
+    runtime.headers.update({'Referer': LEARNING_URL})
+    runtime.headers.update({'Origin': LEARNING_URL})
     all_blocks = {selected_course:
                     get_available_blocks(selected_course.id, USERNAME, headers)
                     for selected_course in selected_courses}
@@ -805,12 +810,14 @@ def main():
         _display_chapters(all_blocks[selected_course])
 
     # Download all resources
+    runtime.headers.update({'Referer': BASE_URL})
+    runtime.headers.update({'Origin': BASE_URL})
     if not args.process:   
         for course_block in all_blocks.values():
-            download_course(args, course_block, headers, file_formats)
+            download_course(args, course_block, runtime.headers, file_formats)
     else:
         for course_block in all_blocks.values():
-            download_course_parallel(args, course_block, headers, file_formats)
+            download_course_parallel(args, course_block, runtime.headers, file_formats)
 
 if __name__ == '__main__':
     try:

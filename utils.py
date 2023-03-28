@@ -16,6 +16,7 @@ import logging
 import os
 import string
 import subprocess
+import runtime
 
 def get_filename_from_prefix(target_dir, filename_prefix):
     """
@@ -54,17 +55,12 @@ def directory_name(initial_name):
     return result if result != "" else "course_folder"
 
 
-
 def post_page_contents(url, headers, postdata):
-    # CHANGE: add new Post method
-    result = urlopen(Request(url, data=postdata, headers=headers, method='POST'))
-    try:
-        # for python3
-        charset = result.headers.get_content_charset(failobj="utf-8")
-    except:
-        charset = result.info().getparam('charset') or 'utf-8'
-    return result.read().decode(charset)
-
+    response = runtime.session.post(url, data=postdata, headers=headers)
+    if response.status_code == 200:
+        return response.content.decode('utf-8')
+    else:
+        return ''
 
 def get_page_contents(url, headers, params=None):
     """
@@ -73,13 +69,11 @@ def get_page_contents(url, headers, params=None):
     """
     if not params is None:
         url = url+'?'+params
-    result = urlopen(Request(url, data=None, headers=headers, method='GET'))
-    try:
-        # for python3
-        charset = result.headers.get_content_charset(failobj="utf-8")
-    except:
-        charset = result.info().getparam('charset') or 'utf-8'
-    return result.read().decode(charset)
+    response = runtime.session.get(url, params=params, headers=headers)
+    if response.status_code == 200:
+        return response.content.decode('utf-8')
+    else:
+        return ''
 
 
 def post_page_contents_as_json(url, headers, postdata):
@@ -97,8 +91,6 @@ def get_page_contents_as_json(url, headers, params=None):
     json_string = get_page_contents(url, headers, params)
     json_object = json.loads(json_string)
     return json_object
-
-
 
 def remove_duplicates(orig_list, seen=set()):
     """
