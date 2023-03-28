@@ -80,8 +80,6 @@ class ExitCode(object):
     UNKNOWN_PLATFORM = 5
     NO_DOWNLOADABLE_VIDEO = 6
 
-
-YOUTUBE_DL_CMD = ['youtube-dl', '--ignore-config']
 DEFAULT_CACHE_FILENAME = 'edx-dl.cache'
 DEFAULT_FILE_FORMATS = ['eps', 'pdf', 'txt', 'doc', 'xls', 'ppt',
                         'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'odg',

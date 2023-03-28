@@ -533,7 +533,6 @@ def download_subtitle(url, filename, headers, args):
 def _build_url_downloads(urls, target_dir, filename_prefix):
     """
     Builds a dict {url: filename} for the given urls
-    If it is a youtube url it uses the valid template for youtube-dl
     otherwise just takes the name of the file from the url
     """
     downloads = {url:

@@ -7,6 +7,7 @@ import enum
 import re
 import json
 import sys
+import logging
 
 from datetime import timedelta, datetime
 
@@ -284,11 +285,7 @@ class EdxExtractor(object):
         # download list
         re_youtube_links = re.compile(r'&lt;a href=(?:&#34;|")(https?\:\/\/(?:www\.)?(?:youtube\.com|youtu\.?be)\/.*?)(?:&#34;|")')
         youtube_links = re_youtube_links.findall(text)
-        resources_urls += youtube_links
+        #resources_urls += youtube_links
+        logging.warn('(skipped) No youtube downloaded: '+youtube_links)
 
         return resources_urls
-
-
-def is_youtube_url(url):
-    re_youtube_url = re.compile(r'(https?\:\/\/(?:www\.)?(?:youtube\.com|youtu\.?be)\/.*?)')
-    return re_youtube_url.match(url)
