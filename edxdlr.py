@@ -295,7 +295,8 @@ def edx_login(email, password):
     response = runtime.session.post(LOGIN_API, data=post_data, headers=runtime.headers)
     
     if response.status_code != 200:
-        logging.info('Error, cannot login: %s', response.status_code)
+        failure_info = json.loads(response.text)
+        logging.info('Error, cannot login: (%s) %s', response.status_code, failure_info['value'])
     
     return response
 
