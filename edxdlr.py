@@ -495,7 +495,7 @@ def edx_get_subtitle(url, headers):
         logging.warn('edX subtitles (error: %s)', exception.message)
         return None
 
-def _build_subtitles_downloads(video, target_dir, filename_prefix, headers):
+def _build_subtitles_downloads(args, video, target_dir, filename_prefix, headers):
     """
     Builds a dict {url: filename} for the subtitles, based on the
     filename_prefix of the video
@@ -518,6 +518,9 @@ def _build_subtitles_downloads(video, target_dir, filename_prefix, headers):
     if match_subtitle:
         filename = match_subtitle.group(1)
 
+    if args.shorten:
+        filename = filename[:32].strip()
+        
     subtitles_download_urls = get_subtitles_urls(video.subs_available_url,
                                                  video.subs_template_url,
                                                  headers)
@@ -537,23 +540,26 @@ def download_subtitle(url, filename, headers, args):
         with open(full_filename, 'wb+') as f:
             f.write(subs_string.encode('utf-8'))
 
-def _build_url_downloads(urls, target_dir, filename_prefix):
+def _build_url_downloads(args, urls, target_dir, filename_prefix):
     """
     Builds a dict {url: filename} for the given urls
     otherwise just takes the name of the file from the url
     """
     downloads = {url:
-                 _build_filename_from_url(url, target_dir, filename_prefix)
+                 _build_filename_from_url(args, url, target_dir, filename_prefix)
                  for url in urls}
     return downloads
 
-def _build_filename_from_url(url, target_dir, filename_prefix):
+def _build_filename_from_url(args, url, target_dir, filename_prefix):
     """
     Builds the appropriate filename for the given args
     """
-    original_filename = url.rsplit('/', 1)[1]
-    filename = os.path.join(target_dir,
-                            filename_prefix + '-' + original_filename)
+    original_filename = filename_prefix + '-' + url.rsplit('/', 1)[1]
+    filename = original_filename.rsplit('.',1)[0]
+    fileformat = original_filename.rsplit('.',1)[1]
+    if args.shorten:
+        filename = filename[:32].strip()
+    filename = os.path.join(target_dir, filename + '.' + fileformat)
     return filename
 
 def download_url(url, filename, headers, args):
@@ -637,23 +643,23 @@ def download_video(video_unit, args, target_dir, filename_prefix, headers):
 
     if args.m3u8 and len(video_unit.video_m3u8_urls)>0: 
         # if m3u8 not exist, fallback to mp4
-        m3u8_downloads = _build_url_downloads(video_unit.video_m3u8_urls, target_dir, filename_prefix)
+        m3u8_downloads = _build_url_downloads(args, video_unit.video_m3u8_urls, target_dir, filename_prefix)
         skip_or_download(m3u8_downloads, headers, args, download_m3u8)
     
     elif len(video_unit.video_mp4_urls)>0:
         
-        mp4_downloads = _build_url_downloads(video_unit.video_mp4_urls, target_dir, filename_prefix)
+        mp4_downloads = _build_url_downloads(args, video_unit.video_mp4_urls, target_dir, filename_prefix)
         skip_or_download(mp4_downloads, headers, args)
     
     else: 
         # force video link as mp4 download
         mp4_downloads = {url:
-                        _build_filename_from_url(url, target_dir, filename_prefix)+'.mp4'
+                        _build_filename_from_url(args, url, target_dir, filename_prefix)+'.mp4'
                         for url in video_unit.video_url}
         skip_or_download(mp4_downloads, headers, args)
         
     if args.subtitles:
-        sub_downloads = _build_subtitles_downloads(video_unit, target_dir, filename_prefix, headers)
+        sub_downloads = _build_subtitles_downloads(args, video_unit, target_dir, filename_prefix, headers)
         skip_or_download(sub_downloads, headers, args, download_subtitle)
 
 def save_webpage(content, filename, headers, args):
