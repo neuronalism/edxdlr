@@ -198,6 +198,12 @@ def parse_args():
                         default=3,
                         help='download retry times')
 
+    parser.add_argument('--short-names',
+                        dest='shorten',
+                        action='store_true',
+                        default=False,
+                        help='use short file names (<32 chars)')
+    
     parser.add_argument('--cache',
                         dest='cache',
                         action='store_true',
@@ -703,13 +709,19 @@ def download_course(args, course_block, headers, file_formats):
     # Download Videos
     for c,chapter in enumerate(course_block.children):
         chapter_dirname = clean_filename("%02d-%s" % (c+1, chapter.name))
+        if args.shorten:
+            chapter_dirname = chapter_dirname[:32].strip()
         for s,sequential in enumerate(chapter.children):
             sequential_dirname = clean_filename("%02d-%s" % (s+1, sequential.name))
+            if args.shorten:
+                sequential_dirname = sequential_dirname[:32].strip()
             target_dir = os.path.join(base_dir,chapter_dirname,sequential_dirname)
             mkdir_p(target_dir)
     
             for v,vertical in enumerate(sequential.children):
                 vertical_name = clean_filename("%02d-%s" % (v+1,vertical.name))
+                if args.shorten:
+                    vertical_name = vertical_name[:32].strip()
                 vunits = extract_units(vertical.url, headers, file_formats) 
                 
                 counter = 0
